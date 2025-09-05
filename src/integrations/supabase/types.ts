@@ -14,7 +14,157 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      encartes_pdf_armazenados: {
+        Row: {
+          created_at: string
+          data_encarte: string
+          id: string
+          supermercado_id: string
+          url_storage: string
+        }
+        Insert: {
+          created_at?: string
+          data_encarte: string
+          id?: string
+          supermercado_id: string
+          url_storage: string
+        }
+        Update: {
+          created_at?: string
+          data_encarte?: string
+          id?: string
+          supermercado_id?: string
+          url_storage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encartes_pdf_armazenados_supermercado_id_fkey"
+            columns: ["supermercado_id"]
+            isOneToOne: false
+            referencedRelation: "supermercados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ofertas: {
+        Row: {
+          created_at: string
+          data_extracao: string
+          data_fim_validade: string
+          data_inicio_validade: string
+          id: string
+          nome_produto: string
+          preco: number
+          supermercado_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_extracao?: string
+          data_fim_validade: string
+          data_inicio_validade: string
+          id?: string
+          nome_produto: string
+          preco: number
+          supermercado_id: string
+        }
+        Update: {
+          created_at?: string
+          data_extracao?: string
+          data_fim_validade?: string
+          data_inicio_validade?: string
+          id?: string
+          nome_produto?: string
+          preco?: number
+          supermercado_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ofertas_supermercado_id_fkey"
+            columns: ["supermercado_id"]
+            isOneToOne: false
+            referencedRelation: "supermercados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supermercados: {
+        Row: {
+          cep_faixa_final: number
+          cep_faixa_inicial: number
+          created_at: string
+          id: string
+          nome: string
+          regiao: string
+          tipo_extracao: string
+          updated_at: string
+          url_ofertas: string | null
+        }
+        Insert: {
+          cep_faixa_final: number
+          cep_faixa_inicial: number
+          created_at?: string
+          id?: string
+          nome: string
+          regiao: string
+          tipo_extracao: string
+          updated_at?: string
+          url_ofertas?: string | null
+        }
+        Update: {
+          cep_faixa_final?: number
+          cep_faixa_inicial?: number
+          created_at?: string
+          id?: string
+          nome?: string
+          regiao?: string
+          tipo_extracao?: string
+          updated_at?: string
+          url_ofertas?: string | null
+        }
+        Relationships: []
+      }
+      usuarios: {
+        Row: {
+          ativo: boolean | null
+          cep: number
+          cpf: string
+          created_at: string
+          data_fim_trial: string | null
+          formato_oferta_preferido: string | null
+          id: string
+          plano: string
+          supermercados_preferidos: string[] | null
+          telefone_whatsapp: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          cep: number
+          cpf: string
+          created_at?: string
+          data_fim_trial?: string | null
+          formato_oferta_preferido?: string | null
+          id?: string
+          plano?: string
+          supermercados_preferidos?: string[] | null
+          telefone_whatsapp: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          cep?: number
+          cpf?: string
+          created_at?: string
+          data_fim_trial?: string | null
+          formato_oferta_preferido?: string | null
+          id?: string
+          plano?: string
+          supermercados_preferidos?: string[] | null
+          telefone_whatsapp?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

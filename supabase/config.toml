@@ -1,1 +1,10 @@
 project_id = "rfrzxobijhrcfixtauft"
+
+[functions.usuarios-whatsapp]
+verify_jwt = false
+
+[functions.ofertas-personalizadas]
+verify_jwt = false
+
+[functions.processar-ofertas]
+verify_jwt = false

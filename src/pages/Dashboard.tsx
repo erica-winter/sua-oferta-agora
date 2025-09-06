@@ -1,7 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Store, Package, Users, BarChart3, Settings } from "lucide-react";
+import { MessageSquare, Store, Package, Users, BarChart3 } from "lucide-react";
+import { RealtimeStats } from "@/components/RealtimeStats";
+import { WebhookMonitor } from "@/components/WebhookMonitor";
+import { RecentActivities } from "@/components/RecentActivities";
 
 const Dashboard = () => {
   return (
@@ -12,91 +15,15 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold">Dona Oferta - Dashboard</h1>
         </div>
 
-        {/* Cards de visão geral */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Store className="h-5 w-5 text-primary" />
-                Sistema de Ofertas
-              </CardTitle>
-              <CardDescription>
-                Coleta automatizada de ofertas de supermercados via WhatsApp
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Status do Sistema</span>
-                  <Badge variant="default">Operacional</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Supermercados Ativos</span>
-                  <span className="font-semibold">12</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Ofertas Coletadas Hoje</span>
-                  <span className="font-semibold">347</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Estatísticas em tempo real */}
+        <RealtimeStats />
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-accent" />
-                Usuários WhatsApp
-              </CardTitle>
-              <CardDescription>
-                Estatísticas dos usuários cadastrados no bot
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Usuários Ativos</span>
-                  <span className="font-semibold">1,247</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Novos Hoje</span>
-                  <span className="font-semibold">23</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Taxa de Conversão</span>
-                  <span className="font-semibold">85%</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-secondary-foreground" />
-                Automação n8n
-              </CardTitle>
-              <CardDescription>
-                Status dos workflows automatizados
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Workflows Ativos</span>
-                  <span className="font-semibold">6</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Última Execução</span>
-                  <span className="font-semibold">2 min atrás</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Taxa de Sucesso</span>
-                  <Badge variant="default">98.5%</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+          {/* Monitor de Webhooks */}
+          <WebhookMonitor />
+          
+          {/* Atividades Recentes */}
+          <RecentActivities />
         </div>
 
         {/* Seção de workflows */}

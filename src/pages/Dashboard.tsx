@@ -5,14 +5,18 @@ import { MessageSquare, Store, Package, Users, BarChart3 } from "lucide-react";
 import { RealtimeStats } from "@/components/RealtimeStats";
 import { WebhookMonitor } from "@/components/WebhookMonitor";
 import { RecentActivities } from "@/components/RecentActivities";
+import { NotificationCenter } from "@/components/NotificationCenter";
 
 const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <MessageSquare className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">Dona Oferta - Dashboard</h1>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <MessageSquare className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold">Dona Oferta - Dashboard</h1>
+          </div>
+          <NotificationCenter />
         </div>
 
         {/* Estatísticas em tempo real */}

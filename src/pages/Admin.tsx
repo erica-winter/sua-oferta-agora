@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Eye, Store, Package, Users, TrendingUp } from "lucide-react";
+import { Trash2, Plus, Eye, Store, Package, Users, TrendingUp, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { UploadPDF } from "@/components/UploadPDF";
+import { ReportsCharts } from "@/components/ReportsCharts";
 
 interface Supermercado {
   id: string;
@@ -226,11 +228,12 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="supermercados" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="supermercados">Supermercados</TabsTrigger>
             <TabsTrigger value="ofertas">Ofertas</TabsTrigger>
             <TabsTrigger value="usuarios">Usuários</TabsTrigger>
-            <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
+            <TabsTrigger value="upload-pdf">Upload PDF</TabsTrigger>
+            <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
           </TabsList>
 
           <TabsContent value="supermercados" className="space-y-6">
@@ -422,48 +425,15 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="configuracoes" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Configurações do Sistema</CardTitle>
-                <CardDescription>
-                  Configurações gerais e integração com n8n
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <Label>Status dos Crawlers</Label>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="default">Ativo</Badge>
-                      <span className="text-sm text-muted-foreground">
-                        Última execução: Hoje às 08:00
-                      </span>
-                    </div>
-                  </div>
+          <TabsContent value="upload-pdf" className="space-y-6">
+            <UploadPDF 
+              supermercados={supermercados}
+              onUploadSuccess={loadData}
+            />
+          </TabsContent>
 
-                  <div>
-                    <Label>WhatsApp API (WAHA)</Label>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="default">Conectado</Badge>
-                      <span className="text-sm text-muted-foreground">
-                        Status: Online
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label>n8n Workflows</Label>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="default">6 Ativos</Badge>
-                      <span className="text-sm text-muted-foreground">
-                        Última sincronização: 2 min atrás
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="relatorios" className="space-y-6">
+            <ReportsCharts />
           </TabsContent>
         </Tabs>
       </div>

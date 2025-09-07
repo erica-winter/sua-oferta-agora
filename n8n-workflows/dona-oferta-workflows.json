@@ -1,0 +1,796 @@
+{
+  "meta": {
+    "instanceId": "dona-oferta-system"
+  },
+  "workflows": [
+    {
+      "id": "1",
+      "name": "Dona Oferta - Cadastro de Usuários WhatsApp",
+      "nodes": [
+        {
+          "parameters": {
+            "path": "cadastro-usuario",
+            "options": {}
+          },
+          "id": "webhook-cadastro",
+          "name": "Webhook Cadastro",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "position": [240, 300],
+          "webhookId": "cadastro-usuario-webhook"
+        },
+        {
+          "parameters": {
+            "values": {
+              "string": [
+                {
+                  "name": "telefone",
+                  "value": "={{ $json.telefone }}"
+                },
+                {
+                  "name": "cep",
+                  "value": "={{ $json.cep }}"
+                },
+                {
+                  "name": "cpf",
+                  "value": "={{ $json.cpf }}"
+                },
+                {
+                  "name": "formato_preferido",
+                  "value": "={{ $json.formato_preferido || 'Texto' }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "processar-dados",
+          "name": "Processar Dados",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/functions/v1/usuarios-whatsapp",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "telefone",
+                  "value": "={{ $json.telefone }}"
+                },
+                {
+                  "name": "cep",
+                  "value": "={{ $json.cep }}"
+                },
+                {
+                  "name": "cpf",
+                  "value": "={{ $json.cpf }}"
+                },
+                {
+                  "name": "formato_preferido",
+                  "value": "={{ $json.formato_preferido }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "chamar-edge-function",
+          "name": "Chamar Edge Function",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [680, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.success }}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "id": "verificar-sucesso",
+          "name": "Verificar Sucesso",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "position": [900, 300]
+        },
+        {
+          "parameters": {
+            "message": "✅ Cadastro realizado com sucesso!\n\nOlá! Bem-vindo ao Dona Oferta!\n\nVocê foi cadastrado e já pode receber ofertas personalizadas dos supermercados da sua região.\n\nPara receber suas ofertas, envie: *OFERTAS*",
+            "chatId": "={{ $('Processar Dados').item.json.telefone }}",
+            "additionalFields": {}
+          },
+          "id": "enviar-confirmacao",
+          "name": "Enviar Confirmação WhatsApp",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [1120, 200]
+        },
+        {
+          "parameters": {
+            "message": "❌ Erro no cadastro: {{ $json.message }}\n\nTente novamente ou entre em contato conosco.",
+            "chatId": "={{ $('Processar Dados').item.json.telefone }}",
+            "additionalFields": {}
+          },
+          "id": "enviar-erro",
+          "name": "Enviar Erro WhatsApp",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [1120, 400]
+        }
+      ],
+      "connections": {
+        "Webhook Cadastro": {
+          "main": [
+            [
+              {
+                "node": "Processar Dados",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Processar Dados": {
+          "main": [
+            [
+              {
+                "node": "Chamar Edge Function",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Chamar Edge Function": {
+          "main": [
+            [
+              {
+                "node": "Verificar Sucesso",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Verificar Sucesso": {
+          "main": [
+            [
+              {
+                "node": "Enviar Confirmação WhatsApp",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Enviar Erro WhatsApp",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "active": true,
+      "settings": {},
+      "createdAt": "2025-01-07T00:00:00.000Z",
+      "updatedAt": "2025-01-07T00:00:00.000Z"
+    },
+    {
+      "id": "2",
+      "name": "Dona Oferta - Envio de Ofertas Personalizadas",
+      "nodes": [
+        {
+          "parameters": {
+            "triggerTimes": {
+              "item": [
+                {
+                  "hour": 8,
+                  "minute": 0
+                },
+                {
+                  "hour": 18,
+                  "minute": 0
+                }
+              ]
+            },
+            "timezone": "America/Sao_Paulo"
+          },
+          "id": "trigger-diario",
+          "name": "Trigger Diário",
+          "type": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "position": [240, 300]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/rest/v1/usuarios",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "apikey",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                }
+              ]
+            },
+            "qs": {
+              "parameters": [
+                {
+                  "name": "select",
+                  "value": "*"
+                },
+                {
+                  "name": "ativo",
+                  "value": "eq.true"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "buscar-usuarios-ativos",
+          "name": "Buscar Usuários Ativos",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "batchSize": 1,
+            "options": {}
+          },
+          "id": "processar-cada-usuario",
+          "name": "Processar Cada Usuário",
+          "type": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 1,
+          "position": [680, 300]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/functions/v1/ofertas-personalizadas",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "telefone",
+                  "value": "={{ $json.telefone_whatsapp }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "buscar-ofertas",
+          "name": "Buscar Ofertas",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [900, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.success }}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "id": "verificar-ofertas",
+          "name": "Verificar Ofertas",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "position": [1120, 300]
+        },
+        {
+          "parameters": {
+            "message": "🛒 *OFERTAS DO DIA* 🛒\n\n{{ $json.message }}\n\n---\n💡 Para mais ofertas, visite nossa plataforma!",
+            "chatId": "={{ $('Processar Cada Usuário').item.json.telefone_whatsapp }}",
+            "additionalFields": {}
+          },
+          "id": "enviar-ofertas-texto",
+          "name": "Enviar Ofertas Texto",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [1340, 200]
+        },
+        {
+          "parameters": {
+            "message": "🛒 *ENCARTES DO DIA* 🛒\n\nConfira os encartes dos supermercados da sua região:",
+            "chatId": "={{ $('Processar Cada Usuário').item.json.telefone_whatsapp }}",
+            "additionalFields": {}
+          },
+          "id": "enviar-ofertas-pdf",
+          "name": "Enviar Ofertas PDF",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [1340, 400]
+        }
+      ],
+      "connections": {
+        "Trigger Diário": {
+          "main": [
+            [
+              {
+                "node": "Buscar Usuários Ativos",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Buscar Usuários Ativos": {
+          "main": [
+            [
+              {
+                "node": "Processar Cada Usuário",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Processar Cada Usuário": {
+          "main": [
+            [
+              {
+                "node": "Buscar Ofertas",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Buscar Ofertas": {
+          "main": [
+            [
+              {
+                "node": "Verificar Ofertas",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Verificar Ofertas": {
+          "main": [
+            [
+              {
+                "node": "Enviar Ofertas Texto",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Enviar Ofertas PDF",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "active": true,
+      "settings": {},
+      "createdAt": "2025-01-07T00:00:00.000Z",
+      "updatedAt": "2025-01-07T00:00:00.000Z"
+    },
+    {
+      "id": "3",
+      "name": "Dona Oferta - Processamento de Ofertas",
+      "nodes": [
+        {
+          "parameters": {
+            "path": "processar-ofertas",
+            "options": {}
+          },
+          "id": "webhook-ofertas",
+          "name": "Webhook Ofertas",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "position": [240, 300],
+          "webhookId": "processar-ofertas-webhook"
+        },
+        {
+          "parameters": {
+            "values": {
+              "string": [
+                {
+                  "name": "supermercado_id",
+                  "value": "={{ $json.supermercado_id }}"
+                },
+                {
+                  "name": "url_pdf",
+                  "value": "={{ $json.url_pdf }}"
+                }
+              ],
+              "object": [
+                {
+                  "name": "ofertas_extraidas",
+                  "value": "={{ $json.ofertas_extraidas }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "processar-dados-ofertas",
+          "name": "Processar Dados Ofertas",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/functions/v1/processar-ofertas",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "supermercado_id",
+                  "value": "={{ $json.supermercado_id }}"
+                },
+                {
+                  "name": "ofertas_extraidas",
+                  "value": "={{ $json.ofertas_extraidas }}"
+                },
+                {
+                  "name": "url_pdf",
+                  "value": "={{ $json.url_pdf }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "chamar-processar-ofertas",
+          "name": "Chamar Processar Ofertas",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [680, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.success }}",
+                  "value2": true
+                }
+              ]
+            }
+          },
+          "id": "verificar-processamento",
+          "name": "Verificar Processamento",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "position": [900, 300]
+        },
+        {
+          "parameters": {
+            "values": {
+              "string": [
+                {
+                  "name": "status",
+                  "value": "success"
+                },
+                {
+                  "name": "message",
+                  "value": "Ofertas processadas com sucesso!"
+                },
+                {
+                  "name": "ofertas_inseridas",
+                  "value": "={{ $json.ofertas_inseridas }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "resposta-sucesso",
+          "name": "Resposta Sucesso",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "position": [1120, 200]
+        },
+        {
+          "parameters": {
+            "values": {
+              "string": [
+                {
+                  "name": "status",
+                  "value": "error"
+                },
+                {
+                  "name": "message",
+                  "value": "{{ $json.error || 'Erro no processamento das ofertas' }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "resposta-erro",
+          "name": "Resposta Erro",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "position": [1120, 400]
+        }
+      ],
+      "connections": {
+        "Webhook Ofertas": {
+          "main": [
+            [
+              {
+                "node": "Processar Dados Ofertas",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Processar Dados Ofertas": {
+          "main": [
+            [
+              {
+                "node": "Chamar Processar Ofertas",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Chamar Processar Ofertas": {
+          "main": [
+            [
+              {
+                "node": "Verificar Processamento",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Verificar Processamento": {
+          "main": [
+            [
+              {
+                "node": "Resposta Sucesso",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Resposta Erro",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "active": true,
+      "settings": {},
+      "createdAt": "2025-01-07T00:00:00.000Z",
+      "updatedAt": "2025-01-07T00:00:00.000Z"
+    },
+    {
+      "id": "4", 
+      "name": "Dona Oferta - WhatsApp Interativo",
+      "nodes": [
+        {
+          "parameters": {
+            "path": "whatsapp-webhook",
+            "options": {}
+          },
+          "id": "webhook-whatsapp",
+          "name": "Webhook WhatsApp",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 1,
+          "position": [240, 300],
+          "webhookId": "whatsapp-webhook"
+        },
+        {
+          "parameters": {
+            "values": {
+              "string": [
+                {
+                  "name": "telefone",
+                  "value": "={{ $json.from }}"
+                },
+                {
+                  "name": "mensagem",
+                  "value": "={{ $json.body.toLowerCase() }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "processar-mensagem",
+          "name": "Processar Mensagem",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 1,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{ $json.mensagem }}",
+                  "operation": "contains",
+                  "value2": "ofertas"
+                }
+              ]
+            }
+          },
+          "id": "verificar-comando",
+          "name": "Verificar Comando",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "position": [680, 300]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/functions/v1/ofertas-personalizadas",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "telefone",
+                  "value": "={{ $json.telefone }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "buscar-ofertas-usuario",
+          "name": "Buscar Ofertas Usuário",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [900, 200]
+        },
+        {
+          "parameters": {
+            "message": "🛒 {{ $json.message }}\n\n---\n💡 Digite *OFERTAS* para receber as ofertas atualizadas!",
+            "chatId": "={{ $('Processar Mensagem').item.json.telefone }}",
+            "additionalFields": {}
+          },
+          "id": "enviar-ofertas-comando",
+          "name": "Enviar Ofertas Comando",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [1120, 200]
+        },
+        {
+          "parameters": {
+            "message": "👋 Olá! Eu sou a Dona Oferta!\n\n🛒 Digite *OFERTAS* para receber as melhores ofertas dos supermercados da sua região!\n\n📱 Para se cadastrar, envie:\n*CADASTRO [seu telefone] [seu CEP] [seu CPF]*\n\nExemplo: CADASTRO 11999999999 01234567 12345678901",
+            "chatId": "={{ $json.telefone }}",
+            "additionalFields": {}
+          },
+          "id": "menu-ajuda",
+          "name": "Menu Ajuda",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [900, 400]
+        }
+      ],
+      "connections": {
+        "Webhook WhatsApp": {
+          "main": [
+            [
+              {
+                "node": "Processar Mensagem",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Processar Mensagem": {
+          "main": [
+            [
+              {
+                "node": "Verificar Comando",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Verificar Comando": {
+          "main": [
+            [
+              {
+                "node": "Buscar Ofertas Usuário",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Menu Ajuda",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Buscar Ofertas Usuário": {
+          "main": [
+            [
+              {
+                "node": "Enviar Ofertas Comando",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "active": true,
+      "settings": {},
+      "createdAt": "2025-01-07T00:00:00.000Z",
+      "updatedAt": "2025-01-07T00:00:00.000Z"
+    }
+  ]
+}

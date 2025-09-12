@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      contato_mensagens: {
+        Row: {
+          created_at: string
+          email: string
+          empresa: string | null
+          id: string
+          mensagem: string
+          nome: string
+          status: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          empresa?: string | null
+          id?: string
+          mensagem: string
+          nome: string
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          empresa?: string | null
+          id?: string
+          mensagem?: string
+          nome?: string
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       encartes_pdf_armazenados: {
         Row: {
           created_at: string

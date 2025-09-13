@@ -19,7 +19,7 @@ import { ContactForm } from "@/components/ContactForm";
 import heroImage from "@/assets/hero-dona-oferta.jpg";
 
 const Index = () => {
-  const whatsappNumber = "5511999999999"; // Substitua pelo número real
+  const whatsappNumber = "5511999999999"; // Número do WhatsApp da Dona Oferta
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=Olá! Quero receber ofertas personalizadas de supermercados!`;
 
   return (
@@ -33,19 +33,29 @@ const Index = () => {
               <span className="text-xl font-bold">Dona Oferta</span>
             </div>
             <div className="hidden md:flex items-center gap-6">
-              <a href="#como-funciona" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href="#como-funciona" className="text-muted-foreground hover:text-primary transition-colors font-medium">
                 Como Funciona
               </a>
-              <a href="#beneficios" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href="#beneficios" className="text-muted-foreground hover:text-primary transition-colors font-medium">
                 Benefícios
               </a>
-              <a href="#contato" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href="#contato" className="text-muted-foreground hover:text-primary transition-colors font-medium">
                 Contato
               </a>
-              <Button asChild className="gap-2">
+              <Button asChild className="gap-2 shadow-lg hover:shadow-xl transition-all">
                 <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
                   <MessageSquare className="h-4 w-4" />
                   Começar Agora
+                </a>
+              </Button>
+            </div>
+            
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <Button asChild size="sm" className="gap-2">
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                  <MessageSquare className="h-4 w-4" />
+                  WhatsApp
                 </a>
               </Button>
             </div>
@@ -268,10 +278,13 @@ const Index = () => {
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">O que nossos usuários dizem</h2>
             <div className="flex items-center justify-center gap-1 mb-4">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                <Star key={i} className="h-6 w-6 fill-yellow-400 text-yellow-400" />
               ))}
-              <span className="ml-2 text-muted-foreground">4.9/5 baseado em +500 avaliações</span>
+              <span className="ml-3 text-lg text-muted-foreground font-medium">4.9/5 baseado em +500 avaliações</span>
             </div>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Veja como a Dona Oferta já transformou a vida de milhares de pessoas
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -415,6 +428,9 @@ const Index = () => {
 
           <div className="border-t mt-8 pt-8 text-center text-muted-foreground">
             <p>&copy; 2024 Dona Oferta. Todos os direitos reservados.</p>
+            <p className="text-sm mt-2">
+              🚀 Desenvolvido com carinho para economizar seu tempo e dinheiro
+            </p>
           </div>
         </div>
       </footer>

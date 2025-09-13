@@ -1,0 +1,1626 @@
+{
+  "meta": {
+    "instanceId": "dona-oferta-system",
+    "n8nVersion": "1.110.1"
+  },
+  "workflows": [
+    {
+      "id": "1",
+      "name": "Dona Oferta - Cadastro de Usuários com Planos",
+      "nodes": [
+        {
+          "parameters": {
+            "path": "cadastro-usuario",
+            "responseMode": "responseNode",
+            "options": {}
+          },
+          "id": "webhook-cadastro",
+          "name": "Webhook Cadastro",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [240, 300],
+          "webhookId": "cadastro-usuario-webhook"
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "telefone",
+                  "name": "telefone",
+                  "value": "={{ $json.telefone }}",
+                  "type": "string"
+                },
+                {
+                  "id": "cep",
+                  "name": "cep", 
+                  "value": "={{ $json.cep }}",
+                  "type": "string"
+                },
+                {
+                  "id": "cpf",
+                  "name": "cpf",
+                  "value": "={{ $json.cpf }}",
+                  "type": "string"
+                },
+                {
+                  "id": "formato_preferido",
+                  "name": "formato_preferido",
+                  "value": "={{ $json.formato_preferido || 'Texto' }}",
+                  "type": "string"
+                },
+                {
+                  "id": "plano_trial_inicio",
+                  "name": "plano_trial_inicio",
+                  "value": "={{ $now }}",
+                  "type": "string"
+                },
+                {
+                  "id": "plano_trial_fim",
+                  "name": "plano_trial_fim",
+                  "value": "={{ $now.plus({ days: 60 }).toISO() }}",
+                  "type": "string"
+                },
+                {
+                  "id": "plano_atual",
+                  "name": "plano_atual",
+                  "value": "trial",
+                  "type": "string"
+                },
+                {
+                  "id": "plano_status",
+                  "name": "plano_status",
+                  "value": "active",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "processar-dados",
+          "name": "Processar Dados",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/functions/v1/usuarios-whatsapp",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "httpHeaderAuth",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ {\n  \"telefone\": $json.telefone,\n  \"cep\": $json.cep,\n  \"cpf\": $json.cpf,\n  \"formato_preferido\": $json.formato_preferido,\n  \"plano_trial_inicio\": $json.plano_trial_inicio,\n  \"plano_trial_fim\": $json.plano_trial_fim,\n  \"plano_atual\": $json.plano_atual,\n  \"plano_status\": $json.plano_status\n} }}",
+            "options": {}
+          },
+          "id": "chamar-edge-function",
+          "name": "Chamar Edge Function",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [680, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "id": "success_condition",
+                  "leftValue": "={{ $json.success }}",
+                  "rightValue": true,
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "equals"
+                  }
+                }
+              ],
+              "combinator": "and"
+            },
+            "options": {}
+          },
+          "id": "verificar-sucesso",
+          "name": "Verificar Sucesso",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [900, 300]
+        },
+        {
+          "parameters": {
+            "message": "✅ *Cadastro realizado com sucesso!*\n\n🎉 Olá! Bem-vindo ao Dona Oferta!\n\n🆓 *TRIAL GRATUITO ATIVADO*\n• 60 dias de acesso completo\n• Ofertas ilimitadas\n• Sem custo algum\n\n📅 Seu trial termina em: {{ $now.plus({ days: 60 }).toFormat('dd/MM/yyyy') }}\n\n🛒 Para receber suas ofertas agora, envie: *OFERTAS*\n\n---\n💰 *Após o trial:*\n• Plano Básico: R$ 2,99/mês\n• Plano Premium: R$ 9,99/mês",
+            "chatId": "={{ $('Processar Dados').item.json.telefone }}",
+            "additionalFields": {}
+          },
+          "id": "enviar-confirmacao",
+          "name": "Enviar Confirmação WhatsApp",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [1120, 200]
+        },
+        {
+          "parameters": {
+            "message": "❌ Erro no cadastro: {{ $json.message }}\n\nTente novamente ou entre em contato conosco.",
+            "chatId": "={{ $('Processar Dados').item.json.telefone }}",
+            "additionalFields": {}
+          },
+          "id": "enviar-erro",
+          "name": "Enviar Erro WhatsApp",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [1120, 400]
+        },
+        {
+          "parameters": {
+            "respondWith": "json",
+            "responseBody": "={{ {\n  \"status\": \"success\",\n  \"message\": \"Usuário cadastrado com trial ativo\",\n  \"trial_days\": 60\n} }}"
+          },
+          "id": "resposta-webhook-sucesso",
+          "name": "Resposta Webhook Sucesso",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "position": [1340, 200]
+        },
+        {
+          "parameters": {
+            "respondWith": "json",
+            "responseBody": "={{ {\n  \"status\": \"error\",\n  \"message\": $json.message || \"Erro no cadastro\"\n} }}"
+          },
+          "id": "resposta-webhook-erro",
+          "name": "Resposta Webhook Erro",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "position": [1340, 400]
+        }
+      ],
+      "connections": {
+        "Webhook Cadastro": {
+          "main": [
+            [
+              {
+                "node": "Processar Dados",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Processar Dados": {
+          "main": [
+            [
+              {
+                "node": "Chamar Edge Function",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Chamar Edge Function": {
+          "main": [
+            [
+              {
+                "node": "Verificar Sucesso",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Verificar Sucesso": {
+          "main": [
+            [
+              {
+                "node": "Enviar Confirmação WhatsApp",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Enviar Erro WhatsApp",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Enviar Confirmação WhatsApp": {
+          "main": [
+            [
+              {
+                "node": "Resposta Webhook Sucesso",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Enviar Erro WhatsApp": {
+          "main": [
+            [
+              {
+                "node": "Resposta Webhook Erro",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "active": true,
+      "settings": {},
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z"
+    },
+    {
+      "id": "2",
+      "name": "Dona Oferta - Envio de Ofertas com Controle de Planos",
+      "nodes": [
+        {
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "hours",
+                  "hoursInterval": 12
+                }
+              ]
+            },
+            "timezone": "America/Sao_Paulo"
+          },
+          "id": "trigger-diario",
+          "name": "Trigger Diário",
+          "type": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "position": [240, 300]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/rest/v1/usuarios",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "httpHeaderAuth",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "apikey",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                }
+              ]
+            },
+            "sendQuery": true,
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "select",
+                  "value": "*"
+                },
+                {
+                  "name": "ativo",
+                  "value": "eq.true"
+                },
+                {
+                  "name": "or",
+                  "value": "(and(plano_status.eq.active,plano_atual.eq.trial,plano_trial_fim.gte.now()),and(plano_status.eq.active,plano_atual.in.(basico,premium)))"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "buscar-usuarios-ativos",
+          "name": "Buscar Usuários com Planos Ativos",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "batchSize": 1,
+            "options": {}
+          },
+          "id": "processar-cada-usuario",
+          "name": "Processar Cada Usuário",
+          "type": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 3,
+          "position": [680, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "id": "plano_trial",
+                  "leftValue": "={{ $json.plano_atual }}",
+                  "rightValue": "trial",
+                  "operator": {
+                    "type": "string",
+                    "operation": "equals"
+                  }
+                }
+              ],
+              "combinator": "and"
+            },
+            "options": {}
+          },
+          "id": "verificar-tipo-plano",
+          "name": "Verificar Tipo de Plano",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [900, 300]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/functions/v1/ofertas-personalizadas",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "httpHeaderAuth",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ {\n  \"telefone\": $json.telefone_whatsapp,\n  \"plano\": $json.plano_atual,\n  \"limite_ofertas\": \"ilimitado\"\n} }}",
+            "options": {}
+          },
+          "id": "buscar-ofertas-trial",
+          "name": "Buscar Ofertas Trial/Premium",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [1120, 200]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/functions/v1/ofertas-personalizadas",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "httpHeaderAuth",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ {\n  \"telefone\": $json.telefone_whatsapp,\n  \"plano\": $json.plano_atual,\n  \"limite_ofertas\": \"5\"\n} }}",
+            "options": {}
+          },
+          "id": "buscar-ofertas-basico",
+          "name": "Buscar Ofertas Básico",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [1120, 400]
+        },
+        {
+          "parameters": {
+            "message": "🛒 *OFERTAS DO DIA - {{ $('Processar Cada Usuário').item.json.plano_atual.toUpperCase() }}* 🛒\n\n{{ $json.message }}\n\n{{ $('Processar Cada Usuário').item.json.plano_atual === 'trial' ? '🆓 Trial ativo até: ' + $('Processar Cada Usuário').item.json.plano_trial_fim.split('T')[0] : '💎 Plano ativo' }}\n\n---\n💡 Para mais ofertas, visite nossa plataforma!",
+            "chatId": "={{ $('Processar Cada Usuário').item.json.telefone_whatsapp }}",
+            "additionalFields": {}
+          },
+          "id": "enviar-ofertas-whatsapp",
+          "name": "Enviar Ofertas WhatsApp",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [1340, 300]
+        }
+      ],
+      "connections": {
+        "Trigger Diário": {
+          "main": [
+            [
+              {
+                "node": "Buscar Usuários com Planos Ativos",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Buscar Usuários com Planos Ativos": {
+          "main": [
+            [
+              {
+                "node": "Processar Cada Usuário",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Processar Cada Usuário": {
+          "main": [
+            [
+              {
+                "node": "Verificar Tipo de Plano",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Verificar Tipo de Plano": {
+          "main": [
+            [
+              {
+                "node": "Buscar Ofertas Trial/Premium",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Buscar Ofertas Básico",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Buscar Ofertas Trial/Premium": {
+          "main": [
+            [
+              {
+                "node": "Enviar Ofertas WhatsApp",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Buscar Ofertas Básico": {
+          "main": [
+            [
+              {
+                "node": "Enviar Ofertas WhatsApp",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "active": true,
+      "settings": {},
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z"
+    },
+    {
+      "id": "3",
+      "name": "Dona Oferta - Gestão de Planos e Cobrança",
+      "nodes": [
+        {
+          "parameters": {
+            "path": "gestao-planos",
+            "responseMode": "responseNode",
+            "options": {}
+          },
+          "id": "webhook-planos",
+          "name": "Webhook Gestão Planos",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [240, 300],
+          "webhookId": "gestao-planos-webhook"
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "acao",
+                  "name": "acao",
+                  "value": "={{ $json.acao }}",
+                  "type": "string"
+                },
+                {
+                  "id": "telefone",
+                  "name": "telefone",
+                  "value": "={{ $json.telefone }}",
+                  "type": "string"
+                },
+                {
+                  "id": "plano_escolhido",
+                  "name": "plano_escolhido",
+                  "value": "={{ $json.plano_escolhido }}",
+                  "type": "string"
+                },
+                {
+                  "id": "cpf_usuario",
+                  "name": "cpf_usuario",
+                  "value": "={{ $json.cpf_usuario }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "processar-acao-plano",
+          "name": "Processar Ação Plano",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "id": "acao_assinar",
+                  "leftValue": "={{ $json.acao }}",
+                  "rightValue": "assinar_plano",
+                  "operator": {
+                    "type": "string",
+                    "operation": "equals"
+                  }
+                }
+              ],
+              "combinator": "and"
+            },
+            "options": {}
+          },
+          "id": "verificar-acao",
+          "name": "Verificar Ação",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [680, 300]
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "valor_plano",
+                  "name": "valor_plano",
+                  "value": "={{ $json.plano_escolhido === 'basico' ? 299 : 999 }}",
+                  "type": "number"
+                },
+                {
+                  "id": "descricao_plano",
+                  "name": "descricao_plano",
+                  "value": "={{ $json.plano_escolhido === 'basico' ? 'Plano Básico - Dona Oferta' : 'Plano Premium - Dona Oferta' }}",
+                  "type": "string"
+                },
+                {
+                  "id": "customer_id",
+                  "name": "customer_id",
+                  "value": "={{ $json.cpf_usuario }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "preparar-dados-pagamento",
+          "name": "Preparar Dados Pagamento",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3,
+          "position": [900, 200]
+        },
+        {
+          "parameters": {
+            "notice": "PLACEHOLDER: Integração com StarkBank\n\nAqui você implementará:\n1. Criação de cobrança via API StarkBank\n2. Geração de PIX ou boleto\n3. Configuração de webhook para status de pagamento",
+            "url": "https://api.starkbank.com/v2/invoice",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "httpHeaderAuth",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "User-Agent",
+                  "value": "dona-oferta-n8n/1.0"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ {\n  \"invoices\": [{\n    \"amount\": $json.valor_plano,\n    \"taxId\": $json.customer_id,\n    \"name\": \"Cliente Dona Oferta\",\n    \"descriptions\": [{\n      \"key\": \"produto\",\n      \"value\": $json.descricao_plano\n    }],\n    \"tags\": [\"dona-oferta\", $json.plano_escolhido]\n  }]\n} }}",
+            "options": {}
+          },
+          "id": "criar-cobranca-starkbank",
+          "name": "PLACEHOLDER - Criar Cobrança StarkBank",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [1120, 200]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/rest/v1/usuarios",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "httpHeaderAuth",
+            "method": "PATCH",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "name": "Prefer",
+                  "value": "return=minimal"
+                }
+              ]
+            },
+            "sendQuery": true,
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "telefone_whatsapp",
+                  "value": "eq.{{ $('Processar Ação Plano').item.json.telefone }}"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ {\n  \"plano_status\": \"pending_payment\",\n  \"plano_payment_id\": $json.invoices[0].id || \"pending\"\n} }}",
+            "options": {}
+          },
+          "id": "atualizar-status-usuario",
+          "name": "Atualizar Status Usuário",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [1340, 200]
+        },
+        {
+          "parameters": {
+            "message": "💳 *ASSINATURA INICIADA*\n\n✅ Seu plano {{ $('Preparar Dados Pagamento').item.json.descricao_plano }} foi solicitado!\n\n💰 Valor: R$ {{ ($('Preparar Dados Pagamento').item.json.valor_plano / 100).toFixed(2) }}\n\n🔗 Utilize o link/código abaixo para pagamento:\n{{ $json.link || 'Link será enviado em breve' }}\n\n⏰ Após o pagamento, seu plano será ativado automaticamente!",
+            "chatId": "={{ $('Processar Ação Plano').item.json.telefone }}",
+            "additionalFields": {}
+          },
+          "id": "enviar-link-pagamento",
+          "name": "Enviar Link Pagamento",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [1560, 200]
+        },
+        {
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "hours",
+                  "hoursInterval": 24
+                }
+              ]
+            },
+            "timezone": "America/Sao_Paulo"
+          },
+          "id": "verificar-trials-expirados",
+          "name": "Verificar Trials Expirados",
+          "type": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "position": [240, 700]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/rest/v1/usuarios",
+            "authentication": "predefinedCredentialType", 
+            "nodeCredentialType": "httpHeaderAuth",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "apikey",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                }
+              ]
+            },
+            "sendQuery": true,
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "select",
+                  "value": "telefone_whatsapp,plano_trial_fim"
+                },
+                {
+                  "name": "plano_atual",
+                  "value": "eq.trial"
+                },
+                {
+                  "name": "plano_trial_fim",
+                  "value": "lt.now()"
+                },
+                {
+                  "name": "plano_status",
+                  "value": "eq.active"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "buscar-trials-expirados",
+          "name": "Buscar Trials Expirados",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [460, 700]
+        },
+        {
+          "parameters": {
+            "batchSize": 1,
+            "options": {}
+          },
+          "id": "processar-trial-expirado",
+          "name": "Processar Trial Expirado",
+          "type": "n8n-nodes-base.splitInBatches",
+          "typeVersion": 3,
+          "position": [680, 700]
+        },
+        {
+          "parameters": {
+            "message": "⏰ *SEU TRIAL EXPIROU*\n\n😔 Seu período gratuito de 60 dias chegou ao fim.\n\n💎 Continue aproveitando as melhores ofertas com nossos planos:\n\n🥉 *Plano Básico - R$ 2,99/mês*\n• 5 ofertas por dia\n• Supermercados da sua região\n\n🥇 *Plano Premium - R$ 9,99/mês*\n• Ofertas ilimitadas\n• Prioridade nas melhores promoções\n• Suporte exclusivo\n\n📲 Para assinar, responda:\n*PLANO BASICO* ou *PLANO PREMIUM*",
+            "chatId": "={{ $json.telefone_whatsapp }}",
+            "additionalFields": {}
+          },
+          "id": "notificar-trial-expirado",
+          "name": "Notificar Trial Expirado",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [900, 700]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/rest/v1/usuarios",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "httpHeaderAuth",
+            "method": "PATCH",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "name": "Prefer",
+                  "value": "return=minimal"
+                }
+              ]
+            },
+            "sendQuery": true,
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "telefone_whatsapp",
+                  "value": "eq.{{ $json.telefone_whatsapp }}"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ {\n  \"plano_status\": \"expired\",\n  \"ativo\": false\n} }}",
+            "options": {}
+          },
+          "id": "desativar-usuario-expirado",
+          "name": "Desativar Usuário Expirado",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [1120, 700]
+        },
+        {
+          "parameters": {
+            "respondWith": "json",
+            "responseBody": "={{ {\n  \"status\": \"success\",\n  \"action\": $('Processar Ação Plano').item.json.acao,\n  \"payment_status\": \"pending\"\n} }}"
+          },
+          "id": "resposta-webhook",
+          "name": "Resposta Webhook",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "position": [1780, 200]
+        }
+      ],
+      "connections": {
+        "Webhook Gestão Planos": {
+          "main": [
+            [
+              {
+                "node": "Processar Ação Plano",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Processar Ação Plano": {
+          "main": [
+            [
+              {
+                "node": "Verificar Ação",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Verificar Ação": {
+          "main": [
+            [
+              {
+                "node": "Preparar Dados Pagamento",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Preparar Dados Pagamento": {
+          "main": [
+            [
+              {
+                "node": "PLACEHOLDER - Criar Cobrança StarkBank",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "PLACEHOLDER - Criar Cobrança StarkBank": {
+          "main": [
+            [
+              {
+                "node": "Atualizar Status Usuário",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Atualizar Status Usuário": {
+          "main": [
+            [
+              {
+                "node": "Enviar Link Pagamento",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Enviar Link Pagamento": {
+          "main": [
+            [
+              {
+                "node": "Resposta Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Verificar Trials Expirados": {
+          "main": [
+            [
+              {
+                "node": "Buscar Trials Expirados",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Buscar Trials Expirados": {
+          "main": [
+            [
+              {
+                "node": "Processar Trial Expirado",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Processar Trial Expirado": {
+          "main": [
+            [
+              {
+                "node": "Notificar Trial Expirado",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Notificar Trial Expirado": {
+          "main": [
+            [
+              {
+                "node": "Desativar Usuário Expirado",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "active": true,
+      "settings": {},
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z"
+    },
+    {
+      "id": "4",
+      "name": "Dona Oferta - WhatsApp Interativo com Planos",
+      "nodes": [
+        {
+          "parameters": {
+            "path": "whatsapp-webhook",
+            "responseMode": "responseNode",
+            "options": {}
+          },
+          "id": "webhook-whatsapp",
+          "name": "Webhook WhatsApp",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [240, 300],
+          "webhookId": "whatsapp-webhook"
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "telefone",
+                  "name": "telefone",
+                  "value": "={{ $json.from }}",
+                  "type": "string"
+                },
+                {
+                  "id": "mensagem",
+                  "name": "mensagem",
+                  "value": "={{ $json.body.toLowerCase().trim() }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "processar-mensagem",
+          "name": "Processar Mensagem",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": false,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "id": "ofertas_cmd",
+                  "leftValue": "={{ $json.mensagem }}",
+                  "rightValue": "ofertas",
+                  "operator": {
+                    "type": "string",
+                    "operation": "contains"
+                  }
+                }
+              ],
+              "combinator": "or"
+            },
+            "options": {}
+          },
+          "id": "verificar-comando-ofertas",
+          "name": "Verificar Comando Ofertas",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [680, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": false,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "id": "plano_basico",
+                  "leftValue": "={{ $json.mensagem }}",
+                  "rightValue": "plano basico",
+                  "operator": {
+                    "type": "string",
+                    "operation": "contains"
+                  }
+                },
+                {
+                  "id": "plano_premium",
+                  "leftValue": "={{ $json.mensagem }}",
+                  "rightValue": "plano premium",
+                  "operator": {
+                    "type": "string",
+                    "operation": "contains"
+                  }
+                }
+              ],
+              "combinator": "or"
+            },
+            "options": {}
+          },
+          "id": "verificar-comando-plano",
+          "name": "Verificar Comando Plano", 
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [680, 500]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/rest/v1/usuarios",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "httpHeaderAuth",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "apikey",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                }
+              ]
+            },
+            "sendQuery": true,
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "select",
+                  "value": "plano_atual,plano_status,plano_trial_fim"
+                },
+                {
+                  "name": "telefone_whatsapp",
+                  "value": "eq.{{ $json.telefone }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "verificar-status-usuario",
+          "name": "Verificar Status Usuário",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [900, 200]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/functions/v1/ofertas-personalizadas",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "httpHeaderAuth",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ {\n  \"telefone\": $('Processar Mensagem').item.json.telefone,\n  \"plano\": $json[0].plano_atual,\n  \"limite_ofertas\": $json[0].plano_atual === 'basico' ? '5' : 'ilimitado'\n} }}",
+            "options": {}
+          },
+          "id": "buscar-ofertas-usuario",
+          "name": "Buscar Ofertas Usuário",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [1120, 200]
+        },
+        {
+          "parameters": {
+            "message": "🛒 {{ $json.message }}\n\n{{ $('Verificar Status Usuário').item.json[0].plano_atual === 'trial' ? '🆓 Trial ativo até: ' + $('Verificar Status Usuário').item.json[0].plano_trial_fim.split('T')[0] : '💎 Plano ' + $('Verificar Status Usuário').item.json[0].plano_atual + ' ativo' }}\n\n---\n💡 Digite *OFERTAS* para receber as ofertas atualizadas!",
+            "chatId": "={{ $('Processar Mensagem').item.json.telefone }}",
+            "additionalFields": {}
+          },
+          "id": "enviar-ofertas-comando",
+          "name": "Enviar Ofertas Comando",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [1340, 200]
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "plano_escolhido",
+                  "name": "plano_escolhido",
+                  "value": "={{ $json.mensagem.includes('basico') ? 'basico' : 'premium' }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "identificar-plano",
+          "name": "Identificar Plano",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3,
+          "position": [900, 500]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/rest/v1/usuarios",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "httpHeaderAuth",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "apikey",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                }
+              ]
+            },
+            "sendQuery": true,
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "select",
+                  "value": "cpf"
+                },
+                {
+                  "name": "telefone_whatsapp",
+                  "value": "eq.{{ $('Processar Mensagem').item.json.telefone }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "buscar-cpf-usuario",
+          "name": "Buscar CPF Usuário",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [1120, 500]
+        },
+        {
+          "parameters": {
+            "url": "{{ $('Webhook WhatsApp').item.json.n8n_base_url || 'http://localhost:5678' }}/webhook/gestao-planos",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ {\n  \"acao\": \"assinar_plano\",\n  \"telefone\": $('Processar Mensagem').item.json.telefone,\n  \"plano_escolhido\": $json.plano_escolhido,\n  \"cpf_usuario\": $('Buscar CPF Usuário').item.json[0].cpf\n} }}",
+            "options": {}
+          },
+          "id": "chamar-gestao-planos",
+          "name": "Chamar Gestão Planos",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [1340, 500]
+        },
+        {
+          "parameters": {
+            "message": "👋 Olá! Eu sou a Dona Oferta!\n\n🛒 Digite *OFERTAS* para receber as melhores ofertas dos supermercados da sua região!\n\n💎 *Nossos Planos:*\n\n🆓 *Trial Gratuito (60 dias)*\n• Ofertas ilimitadas\n• Sem custo\n\n🥉 *Plano Básico - R$ 2,99/mês*\n• 5 ofertas por dia\n• Supermercados da região\n\n🥇 *Plano Premium - R$ 9,99/mês*\n• Ofertas ilimitadas\n• Prioridade nas promoções\n\n📱 Para se cadastrar (com 60 dias grátis), envie:\n*CADASTRO [telefone] [CEP] [CPF]*\n\n💳 Para assinar um plano:\n*PLANO BASICO* ou *PLANO PREMIUM*",
+            "chatId": "={{ $json.telefone }}",
+            "additionalFields": {}
+          },
+          "id": "menu-ajuda",
+          "name": "Menu Ajuda",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [900, 800]
+        },
+        {
+          "parameters": {
+            "respondWith": "json",
+            "responseBody": "={{ {\n  \"status\": \"processed\",\n  \"action\": \"whatsapp_interaction\"\n} }}"
+          },
+          "id": "resposta-webhook",
+          "name": "Resposta Webhook",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "position": [1560, 400]
+        }
+      ],
+      "connections": {
+        "Webhook WhatsApp": {
+          "main": [
+            [
+              {
+                "node": "Processar Mensagem",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Processar Mensagem": {
+          "main": [
+            [
+              {
+                "node": "Verificar Comando Ofertas",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Verificar Comando Ofertas": {
+          "main": [
+            [
+              {
+                "node": "Verificar Status Usuário",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Verificar Comando Plano",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Verificar Comando Plano": {
+          "main": [
+            [
+              {
+                "node": "Identificar Plano",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Menu Ajuda",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Verificar Status Usuário": {
+          "main": [
+            [
+              {
+                "node": "Buscar Ofertas Usuário",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Buscar Ofertas Usuário": {
+          "main": [
+            [
+              {
+                "node": "Enviar Ofertas Comando",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Enviar Ofertas Comando": {
+          "main": [
+            [
+              {
+                "node": "Resposta Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Identificar Plano": {
+          "main": [
+            [
+              {
+                "node": "Buscar CPF Usuário",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Buscar CPF Usuário": {
+          "main": [
+            [
+              {
+                "node": "Chamar Gestão Planos",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Chamar Gestão Planos": {
+          "main": [
+            [
+              {
+                "node": "Resposta Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Menu Ajuda": {
+          "main": [
+            [
+              {
+                "node": "Resposta Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "active": true,
+      "settings": {},
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z"
+    },
+    {
+      "id": "5",
+      "name": "Dona Oferta - Processamento de Ofertas",
+      "nodes": [
+        {
+          "parameters": {
+            "path": "processar-ofertas",
+            "responseMode": "responseNode",
+            "options": {}
+          },
+          "id": "webhook-ofertas",
+          "name": "Webhook Ofertas",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [240, 300],
+          "webhookId": "processar-ofertas-webhook"
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "supermercado_id",
+                  "name": "supermercado_id",
+                  "value": "={{ $json.supermercado_id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "url_pdf",
+                  "name": "url_pdf",
+                  "value": "={{ $json.url_pdf }}",
+                  "type": "string"
+                },
+                {
+                  "id": "ofertas_extraidas",
+                  "name": "ofertas_extraidas",
+                  "value": "={{ $json.ofertas_extraidas }}",
+                  "type": "object"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "processar-dados-ofertas",
+          "name": "Processar Dados Ofertas",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/functions/v1/processar-ofertas",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "httpHeaderAuth",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ {\n  \"supermercado_id\": $json.supermercado_id,\n  \"ofertas_extraidas\": $json.ofertas_extraidas,\n  \"url_pdf\": $json.url_pdf\n} }}",
+            "options": {}
+          },
+          "id": "chamar-processar-ofertas",
+          "name": "Chamar Processar Ofertas",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [680, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "id": "success_condition",
+                  "leftValue": "={{ $json.success }}",
+                  "rightValue": true,
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "equals"
+                  }
+                }
+              ],
+              "combinator": "and"
+            },
+            "options": {}
+          },
+          "id": "verificar-processamento",
+          "name": "Verificar Processamento",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [900, 300]
+        },
+        {
+          "parameters": {
+            "respondWith": "json",
+            "responseBody": "={{ {\n  \"status\": \"success\",\n  \"message\": \"Ofertas processadas com sucesso!\",\n  \"ofertas_inseridas\": $json.ofertas_inseridas\n} }}"
+          },
+          "id": "resposta-sucesso",
+          "name": "Resposta Sucesso",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "position": [1120, 200]
+        },
+        {
+          "parameters": {
+            "respondWith": "json",
+            "responseBody": "={{ {\n  \"status\": \"error\",\n  \"message\": $json.error || \"Erro no processamento das ofertas\"\n} }}"
+          },
+          "id": "resposta-erro",
+          "name": "Resposta Erro",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1,
+          "position": [1120, 400]
+        }
+      ],
+      "connections": {
+        "Webhook Ofertas": {
+          "main": [
+            [
+              {
+                "node": "Processar Dados Ofertas",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Processar Dados Ofertas": {
+          "main": [
+            [
+              {
+                "node": "Chamar Processar Ofertas",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Chamar Processar Ofertas": {
+          "main": [
+            [
+              {
+                "node": "Verificar Processamento",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Verificar Processamento": {
+          "main": [
+            [
+              {
+                "node": "Resposta Sucesso",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Resposta Erro",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "active": true,
+      "settings": {},
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z"
+    }
+  ]
+}

@@ -48,30 +48,6 @@
                   "name": "formato_preferido",
                   "value": "={{ $json.formato_preferido || 'Texto' }}",
                   "type": "string"
-                },
-                {
-                  "id": "plano_trial_inicio",
-                  "name": "plano_trial_inicio",
-                  "value": "={{ $now }}",
-                  "type": "string"
-                },
-                {
-                  "id": "plano_trial_fim",
-                  "name": "plano_trial_fim",
-                  "value": "={{ $now.plus({ days: 60 }).toISO() }}",
-                  "type": "string"
-                },
-                {
-                  "id": "plano_atual",
-                  "name": "plano_atual",
-                  "value": "trial",
-                  "type": "string"
-                },
-                {
-                  "id": "plano_status",
-                  "name": "plano_status",
-                  "value": "active",
-                  "type": "string"
                 }
               ]
             },
@@ -103,7 +79,7 @@
             },
             "sendBody": true,
             "specifyBody": "json",
-            "jsonBody": "={{ {\n  \"telefone\": $json.telefone,\n  \"cep\": $json.cep,\n  \"cpf\": $json.cpf,\n  \"formato_preferido\": $json.formato_preferido,\n  \"plano_trial_inicio\": $json.plano_trial_inicio,\n  \"plano_trial_fim\": $json.plano_trial_fim,\n  \"plano_atual\": $json.plano_atual,\n  \"plano_status\": $json.plano_status\n} }}",
+            "jsonBody": "={{ {\n  \"telefone\": $json.telefone,\n  \"cep\": $json.cep,\n  \"cpf\": $json.cpf,\n  \"formato_preferido\": $json.formato_preferido\n} }}",
             "options": {}
           },
           "id": "chamar-edge-function",
@@ -143,30 +119,6 @@
         },
         {
           "parameters": {
-            "message": "✅ *Cadastro realizado com sucesso!*\n\n🎉 Olá! Bem-vindo ao Dona Oferta!\n\n🆓 *TRIAL GRATUITO ATIVADO*\n• 60 dias de acesso completo\n• Ofertas ilimitadas\n• Sem custo algum\n\n📅 Seu trial termina em: {{ $now.plus({ days: 60 }).toFormat('dd/MM/yyyy') }}\n\n🛒 Para receber suas ofertas agora, envie: *OFERTAS*\n\n---\n💰 *Após o trial:*\n• Plano Básico: R$ 2,99/mês\n• Plano Premium: R$ 9,99/mês",
-            "chatId": "={{ $('Processar Dados').item.json.telefone }}",
-            "additionalFields": {}
-          },
-          "id": "enviar-confirmacao",
-          "name": "Enviar Confirmação WhatsApp",
-          "type": "n8n-nodes-base.whatsApp",
-          "typeVersion": 1,
-          "position": [1120, 200]
-        },
-        {
-          "parameters": {
-            "message": "❌ Erro no cadastro: {{ $json.message }}\n\nTente novamente ou entre em contato conosco.",
-            "chatId": "={{ $('Processar Dados').item.json.telefone }}",
-            "additionalFields": {}
-          },
-          "id": "enviar-erro",
-          "name": "Enviar Erro WhatsApp",
-          "type": "n8n-nodes-base.whatsApp",
-          "typeVersion": 1,
-          "position": [1120, 400]
-        },
-        {
-          "parameters": {
             "respondWith": "json",
             "responseBody": "={{ {\n  \"status\": \"success\",\n  \"message\": \"Usuário cadastrado com trial ativo\",\n  \"trial_days\": 60\n} }}"
           },
@@ -174,7 +126,7 @@
           "name": "Resposta Webhook Sucesso",
           "type": "n8n-nodes-base.respondToWebhook",
           "typeVersion": 1,
-          "position": [1340, 200]
+          "position": [1120, 200]
         },
         {
           "parameters": {
@@ -185,7 +137,7 @@
           "name": "Resposta Webhook Erro",
           "type": "n8n-nodes-base.respondToWebhook",
           "typeVersion": 1,
-          "position": [1340, 400]
+          "position": [1120, 400]
         }
       ],
       "connections": {
@@ -226,33 +178,11 @@
           "main": [
             [
               {
-                "node": "Enviar Confirmação WhatsApp",
-                "type": "main",
-                "index": 0
-              }
-            ],
-            [
-              {
-                "node": "Enviar Erro WhatsApp",
-                "type": "main",
-                "index": 0
-              }
-            ]
-          ]
-        },
-        "Enviar Confirmação WhatsApp": {
-          "main": [
-            [
-              {
                 "node": "Resposta Webhook Sucesso",
                 "type": "main",
                 "index": 0
               }
-            ]
-          ]
-        },
-        "Enviar Erro WhatsApp": {
-          "main": [
+            ],
             [
               {
                 "node": "Resposta Webhook Erro",
@@ -321,7 +251,7 @@
                 },
                 {
                   "name": "or",
-                  "value": "(and(plano_status.eq.active,plano_atual.eq.trial,plano_trial_fim.gte.now()),and(plano_status.eq.active,plano_atual.in.(basico,premium)))"
+                  "value": "(and(plano_status.eq.active,plano.eq.trial,data_fim_trial.gte.now()),and(plano_status.eq.active,plano.in.(basico,premium)))"
                 }
               ]
             },
@@ -354,12 +284,12 @@
               },
               "conditions": [
                 {
-                  "id": "plano_trial",
-                  "leftValue": "={{ $json.plano_atual }}",
-                  "rightValue": "trial",
+                  "id": "plano_trial_premium",
+                  "leftValue": "={{ $json.plano }}",
+                  "rightValue": "trial,premium",
                   "operator": {
                     "type": "string",
-                    "operation": "equals"
+                    "operation": "contains"
                   }
                 }
               ],
@@ -393,10 +323,10 @@
             },
             "sendBody": true,
             "specifyBody": "json",
-            "jsonBody": "={{ {\n  \"telefone\": $json.telefone_whatsapp,\n  \"plano\": $json.plano_atual,\n  \"limite_ofertas\": \"ilimitado\"\n} }}",
+            "jsonBody": "={{ {\n  \"telefone\": $json.telefone_whatsapp,\n  \"plano\": $json.plano,\n  \"limite_ofertas\": \"ilimitado\"\n} }}",
             "options": {}
           },
-          "id": "buscar-ofertas-trial",
+          "id": "buscar-ofertas-trial-premium",
           "name": "Buscar Ofertas Trial/Premium",
           "type": "n8n-nodes-base.httpRequest",
           "typeVersion": 4,
@@ -422,7 +352,7 @@
             },
             "sendBody": true,
             "specifyBody": "json",
-            "jsonBody": "={{ {\n  \"telefone\": $json.telefone_whatsapp,\n  \"plano\": $json.plano_atual,\n  \"limite_ofertas\": \"5\"\n} }}",
+            "jsonBody": "={{ {\n  \"telefone\": $json.telefone_whatsapp,\n  \"plano\": $json.plano,\n  \"limite_ofertas\": \"5\"\n} }}",
             "options": {}
           },
           "id": "buscar-ofertas-basico",
@@ -433,7 +363,7 @@
         },
         {
           "parameters": {
-            "message": "🛒 *OFERTAS DO DIA - {{ $('Processar Cada Usuário').item.json.plano_atual.toUpperCase() }}* 🛒\n\n{{ $json.message }}\n\n{{ $('Processar Cada Usuário').item.json.plano_atual === 'trial' ? '🆓 Trial ativo até: ' + $('Processar Cada Usuário').item.json.plano_trial_fim.split('T')[0] : '💎 Plano ativo' }}\n\n---\n💡 Para mais ofertas, visite nossa plataforma!",
+            "message": "🛒 *OFERTAS DO DIA - {{ $('Processar Cada Usuário').item.json.plano.toUpperCase() }}* 🛒\n\n{{ $json.message }}\n\n{{ $('Processar Cada Usuário').item.json.plano === 'trial' ? '🆓 Trial ativo até: ' + $('Processar Cada Usuário').item.json.data_fim_trial.split('T')[0] : '💎 Plano ativo' }}\n\n---\n💡 Para mais ofertas, visite nossa plataforma!",
             "chatId": "={{ $('Processar Cada Usuário').item.json.telefone_whatsapp }}",
             "additionalFields": {}
           },
@@ -642,7 +572,7 @@
         },
         {
           "parameters": {
-            "notice": "PLACEHOLDER: Integração com StarkBank\n\nAqui você implementará:\n1. Criação de cobrança via API StarkBank\n2. Geração de PIX ou boleto\n3. Configuração de webhook para status de pagamento",
+            "notice": "PLACEHOLDER: Integração com StarkBank será implementada pelo usuário",
             "url": "https://api.starkbank.com/v2/invoice",
             "authentication": "predefinedCredentialType",
             "nodeCredentialType": "httpHeaderAuth",
@@ -704,7 +634,7 @@
             },
             "sendBody": true,
             "specifyBody": "json",
-            "jsonBody": "={{ {\n  \"plano_status\": \"pending_payment\",\n  \"plano_payment_id\": $json.invoices[0].id || \"pending\"\n} }}",
+            "jsonBody": "={{ {\n  \"plano_status\": \"pending_payment\",\n  \"plano_payment_id\": \"pending\"\n} }}",
             "options": {}
           },
           "id": "atualizar-status-usuario",
@@ -715,12 +645,12 @@
         },
         {
           "parameters": {
-            "message": "💳 *ASSINATURA INICIADA*\n\n✅ Seu plano {{ $('Preparar Dados Pagamento').item.json.descricao_plano }} foi solicitado!\n\n💰 Valor: R$ {{ ($('Preparar Dados Pagamento').item.json.valor_plano / 100).toFixed(2) }}\n\n🔗 Utilize o link/código abaixo para pagamento:\n{{ $json.link || 'Link será enviado em breve' }}\n\n⏰ Após o pagamento, seu plano será ativado automaticamente!",
+            "message": "💳 *ASSINATURA INICIADA*\n\n✅ Seu plano {{ $('Preparar Dados Pagamento').item.json.descricao_plano }} foi solicitado!\n\n💰 Valor: R$ {{ ($('Preparar Dados Pagamento').item.json.valor_plano / 100).toFixed(2) }}\n\n🔗 Link/código para pagamento será enviado em breve via StarkBank.\n\n⏰ Após o pagamento, seu plano será ativado automaticamente!",
             "chatId": "={{ $('Processar Ação Plano').item.json.telefone }}",
             "additionalFields": {}
           },
-          "id": "enviar-link-pagamento",
-          "name": "Enviar Link Pagamento",
+          "id": "enviar-confirmacao-pagamento",
+          "name": "Enviar Confirmação Pagamento",
           "type": "n8n-nodes-base.whatsApp",
           "typeVersion": 1,
           "position": [1560, 200]
@@ -766,19 +696,19 @@
               "parameters": [
                 {
                   "name": "select",
-                  "value": "telefone_whatsapp,plano_trial_fim"
+                  "value": "telefone_whatsapp,data_fim_trial"
                 },
                 {
-                  "name": "plano_atual",
+                  "name": "plano",
                   "value": "eq.trial"
                 },
                 {
-                  "name": "plano_trial_fim",
+                  "name": "data_fim_trial",
                   "value": "lt.now()"
                 },
                 {
-                  "name": "plano_status",
-                  "value": "eq.active"
+                  "name": "ativo",
+                  "value": "eq.true"
                 }
               ]
             },
@@ -847,7 +777,7 @@
             },
             "sendBody": true,
             "specifyBody": "json",
-            "jsonBody": "={{ {\n  \"plano_status\": \"expired\",\n  \"ativo\": false\n} }}",
+            "jsonBody": "={{ {\n  \"ativo\": false\n} }}",
             "options": {}
           },
           "id": "desativar-usuario-expirado",
@@ -928,14 +858,14 @@
           "main": [
             [
               {
-                "node": "Enviar Link Pagamento",
+                "node": "Enviar Confirmação Pagamento",
                 "type": "main",
                 "index": 0
               }
             ]
           ]
         },
-        "Enviar Link Pagamento": {
+        "Enviar Confirmação Pagamento": {
           "main": [
             [
               {
@@ -998,7 +928,7 @@
     },
     {
       "id": "4",
-      "name": "Dona Oferta - WhatsApp Interativo com Planos",
+      "name": "Dona Oferta - WhatsApp Interativo com Jornada Completa",
       "nodes": [
         {
           "parameters": {
@@ -1028,6 +958,12 @@
                   "name": "mensagem",
                   "value": "={{ $json.body.toLowerCase().trim() }}",
                   "type": "string"
+                },
+                {
+                  "id": "mensagem_original",
+                  "name": "mensagem_original",
+                  "value": "={{ $json.body }}",
+                  "type": "string"
                 }
               ]
             },
@@ -1038,73 +974,6 @@
           "type": "n8n-nodes-base.set",
           "typeVersion": 3,
           "position": [460, 300]
-        },
-        {
-          "parameters": {
-            "conditions": {
-              "options": {
-                "caseSensitive": false,
-                "leftValue": "",
-                "typeValidation": "strict"
-              },
-              "conditions": [
-                {
-                  "id": "ofertas_cmd",
-                  "leftValue": "={{ $json.mensagem }}",
-                  "rightValue": "ofertas",
-                  "operator": {
-                    "type": "string",
-                    "operation": "contains"
-                  }
-                }
-              ],
-              "combinator": "or"
-            },
-            "options": {}
-          },
-          "id": "verificar-comando-ofertas",
-          "name": "Verificar Comando Ofertas",
-          "type": "n8n-nodes-base.if",
-          "typeVersion": 2,
-          "position": [680, 300]
-        },
-        {
-          "parameters": {
-            "conditions": {
-              "options": {
-                "caseSensitive": false,
-                "leftValue": "",
-                "typeValidation": "strict"
-              },
-              "conditions": [
-                {
-                  "id": "plano_basico",
-                  "leftValue": "={{ $json.mensagem }}",
-                  "rightValue": "plano basico",
-                  "operator": {
-                    "type": "string",
-                    "operation": "contains"
-                  }
-                },
-                {
-                  "id": "plano_premium",
-                  "leftValue": "={{ $json.mensagem }}",
-                  "rightValue": "plano premium",
-                  "operator": {
-                    "type": "string",
-                    "operation": "contains"
-                  }
-                }
-              ],
-              "combinator": "or"
-            },
-            "options": {}
-          },
-          "id": "verificar-comando-plano",
-          "name": "Verificar Comando Plano", 
-          "type": "n8n-nodes-base.if",
-          "typeVersion": 2,
-          "position": [680, 500]
         },
         {
           "parameters": {
@@ -1129,7 +998,7 @@
               "parameters": [
                 {
                   "name": "select",
-                  "value": "plano_atual,plano_status,plano_trial_fim"
+                  "value": "*"
                 },
                 {
                   "name": "telefone_whatsapp",
@@ -1139,11 +1008,136 @@
             },
             "options": {}
           },
-          "id": "verificar-status-usuario",
-          "name": "Verificar Status Usuário",
+          "id": "verificar-usuario-existente",
+          "name": "Verificar Usuário Existente",
           "type": "n8n-nodes-base.httpRequest",
           "typeVersion": 4,
-          "position": [900, 200]
+          "position": [680, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "id": "usuario_existe",
+                  "leftValue": "={{ $json.length }}",
+                  "rightValue": 0,
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  }
+                }
+              ],
+              "combinator": "and"
+            },
+            "options": {}
+          },
+          "id": "usuario-existe",
+          "name": "Usuário Existe?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [900, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "id": "tem_supermercados",
+                  "leftValue": "={{ $json[0].supermercados_preferidos && $json[0].supermercados_preferidos.length }}",
+                  "rightValue": 0,
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  }
+                }
+              ],
+              "combinator": "and"
+            },
+            "options": {}
+          },
+          "id": "tem-supermercados",
+          "name": "Tem Supermercados?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [1120, 200]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": false,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "id": "ofertas_cmd",
+                  "leftValue": "={{ $('Processar Mensagem').item.json.mensagem }}",
+                  "rightValue": "ofertas",
+                  "operator": {
+                    "type": "string",
+                    "operation": "contains"
+                  }
+                }
+              ],
+              "combinator": "or"
+            },
+            "options": {}
+          },
+          "id": "verificar-comando-ofertas",
+          "name": "É Comando Ofertas?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [1340, 100]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": false,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "id": "plano_basico",
+                  "leftValue": "={{ $('Processar Mensagem').item.json.mensagem }}",
+                  "rightValue": "plano basico",
+                  "operator": {
+                    "type": "string",
+                    "operation": "contains"
+                  }
+                },
+                {
+                  "id": "plano_premium",
+                  "leftValue": "={{ $('Processar Mensagem').item.json.mensagem }}",
+                  "rightValue": "plano premium",
+                  "operator": {
+                    "type": "string",
+                    "operation": "contains"
+                  }
+                }
+              ],
+              "combinator": "or"
+            },
+            "options": {}
+          },
+          "id": "verificar-comando-plano",
+          "name": "É Comando Plano?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [1340, 200]
         },
         {
           "parameters": {
@@ -1165,26 +1159,26 @@
             },
             "sendBody": true,
             "specifyBody": "json",
-            "jsonBody": "={{ {\n  \"telefone\": $('Processar Mensagem').item.json.telefone,\n  \"plano\": $json[0].plano_atual,\n  \"limite_ofertas\": $json[0].plano_atual === 'basico' ? '5' : 'ilimitado'\n} }}",
+            "jsonBody": "={{ {\n  \"telefone\": $('Processar Mensagem').item.json.telefone,\n  \"plano\": $('Verificar Usuário Existente').item.json[0].plano,\n  \"limite_ofertas\": $('Verificar Usuário Existente').item.json[0].plano === 'basico' ? '5' : 'ilimitado'\n} }}",
             "options": {}
           },
           "id": "buscar-ofertas-usuario",
-          "name": "Buscar Ofertas Usuário",
+          "name": "Buscar Ofertas",
           "type": "n8n-nodes-base.httpRequest",
           "typeVersion": 4,
-          "position": [1120, 200]
+          "position": [1560, 100]
         },
         {
           "parameters": {
-            "message": "🛒 {{ $json.message }}\n\n{{ $('Verificar Status Usuário').item.json[0].plano_atual === 'trial' ? '🆓 Trial ativo até: ' + $('Verificar Status Usuário').item.json[0].plano_trial_fim.split('T')[0] : '💎 Plano ' + $('Verificar Status Usuário').item.json[0].plano_atual + ' ativo' }}\n\n---\n💡 Digite *OFERTAS* para receber as ofertas atualizadas!",
+            "message": "🛒 {{ $json.message }}\n\n{{ $('Verificar Usuário Existente').item.json[0].plano === 'trial' ? '🆓 Trial ativo até: ' + $('Verificar Usuário Existente').item.json[0].data_fim_trial.split('T')[0] : '💎 Plano ' + $('Verificar Usuário Existente').item.json[0].plano + ' ativo' }}\n\n---\n💡 Digite *OFERTAS* para receber ofertas atualizadas!",
             "chatId": "={{ $('Processar Mensagem').item.json.telefone }}",
             "additionalFields": {}
           },
-          "id": "enviar-ofertas-comando",
-          "name": "Enviar Ofertas Comando",
+          "id": "enviar-ofertas",
+          "name": "Enviar Ofertas",
           "type": "n8n-nodes-base.whatsApp",
           "typeVersion": 1,
-          "position": [1340, 200]
+          "position": [1780, 100]
         },
         {
           "parameters": {
@@ -1193,7 +1187,7 @@
                 {
                   "id": "plano_escolhido",
                   "name": "plano_escolhido",
-                  "value": "={{ $json.mensagem.includes('basico') ? 'basico' : 'premium' }}",
+                  "value": "={{ $('Processar Mensagem').item.json.mensagem.includes('basico') ? 'basico' : 'premium' }}",
                   "type": "string"
                 }
               ]
@@ -1204,46 +1198,7 @@
           "name": "Identificar Plano",
           "type": "n8n-nodes-base.set",
           "typeVersion": 3,
-          "position": [900, 500]
-        },
-        {
-          "parameters": {
-            "url": "https://rfrzxobijhrcfixtauft.supabase.co/rest/v1/usuarios",
-            "authentication": "predefinedCredentialType",
-            "nodeCredentialType": "httpHeaderAuth",
-            "sendHeaders": true,
-            "headerParameters": {
-              "parameters": [
-                {
-                  "name": "Authorization",
-                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
-                },
-                {
-                  "name": "apikey",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
-                }
-              ]
-            },
-            "sendQuery": true,
-            "queryParameters": {
-              "parameters": [
-                {
-                  "name": "select",
-                  "value": "cpf"
-                },
-                {
-                  "name": "telefone_whatsapp",
-                  "value": "eq.{{ $('Processar Mensagem').item.json.telefone }}"
-                }
-              ]
-            },
-            "options": {}
-          },
-          "id": "buscar-cpf-usuario",
-          "name": "Buscar CPF Usuário",
-          "type": "n8n-nodes-base.httpRequest",
-          "typeVersion": 4,
-          "position": [1120, 500]
+          "position": [1560, 200]
         },
         {
           "parameters": {
@@ -1259,37 +1214,163 @@
             },
             "sendBody": true,
             "specifyBody": "json",
-            "jsonBody": "={{ {\n  \"acao\": \"assinar_plano\",\n  \"telefone\": $('Processar Mensagem').item.json.telefone,\n  \"plano_escolhido\": $json.plano_escolhido,\n  \"cpf_usuario\": $('Buscar CPF Usuário').item.json[0].cpf\n} }}",
+            "jsonBody": "={{ {\n  \"acao\": \"assinar_plano\",\n  \"telefone\": $('Processar Mensagem').item.json.telefone,\n  \"plano_escolhido\": $json.plano_escolhido,\n  \"cpf_usuario\": $('Verificar Usuário Existente').item.json[0].cpf\n} }}",
             "options": {}
           },
           "id": "chamar-gestao-planos",
           "name": "Chamar Gestão Planos",
           "type": "n8n-nodes-base.httpRequest",
           "typeVersion": 4,
-          "position": [1340, 500]
+          "position": [1780, 200]
         },
         {
           "parameters": {
-            "message": "👋 Olá! Eu sou a Dona Oferta!\n\n🛒 Digite *OFERTAS* para receber as melhores ofertas dos supermercados da sua região!\n\n💎 *Nossos Planos:*\n\n🆓 *Trial Gratuito (60 dias)*\n• Ofertas ilimitadas\n• Sem custo\n\n🥉 *Plano Básico - R$ 2,99/mês*\n• 5 ofertas por dia\n• Supermercados da região\n\n🥇 *Plano Premium - R$ 9,99/mês*\n• Ofertas ilimitadas\n• Prioridade nas promoções\n\n📱 Para se cadastrar (com 60 dias grátis), envie:\n*CADASTRO [telefone] [CEP] [CPF]*\n\n💳 Para assinar um plano:\n*PLANO BASICO* ou *PLANO PREMIUM*",
-            "chatId": "={{ $json.telefone }}",
+            "message": "🛒 *Bem-vindo de volta!*\n\nVocê já está cadastrado com trial ativo! ✅\n\n📋 *Próximo passo:* Precisamos que você escolha seus supermercados preferidos.\n\nPor favor, nos informe:\n📍 Qual região/cidade você mora?\n🏪 Quais supermercados você frequenta?\n\nExemplo: *Moro em São Paulo, frequento Carrefour e Pão de Açúcar*\n\n💡 Após isso, você receberá ofertas personalizadas!",
+            "chatId": "={{ $('Processar Mensagem').item.json.telefone }}",
             "additionalFields": {}
           },
-          "id": "menu-ajuda",
-          "name": "Menu Ajuda",
+          "id": "solicitar-supermercados",
+          "name": "Solicitar Supermercados",
           "type": "n8n-nodes-base.whatsApp",
           "typeVersion": 1,
-          "position": [900, 800]
+          "position": [1560, 300]
+        },
+        {
+          "parameters": {
+            "message": "👋 *Olá! Bem-vindo à Dona Oferta!*\n\n🎉 Que bom ter você aqui!\n\n🆓 *TRIAL GRATUITO DE 60 DIAS!*\nPara começar a receber as melhores ofertas, preciso de algumas informações:\n\n📱 Seu telefone: {{ $('Processar Mensagem').item.json.telefone }} ✅\n📮 Seu CEP\n🆔 Seu CPF\n\nPor favor, envie no formato:\n*CADASTRO [SEU_CEP] [SEU_CPF]*\n\nExemplo: *CADASTRO 01234567 123.456.789-00*\n\n💡 Após o cadastro, você terá 60 dias gratuitos para testar todas as funcionalidades!",
+            "chatId": "={{ $('Processar Mensagem').item.json.telefone }}",
+            "additionalFields": {}
+          },
+          "id": "iniciar-cadastro-novo",
+          "name": "Iniciar Cadastro Novo",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [1120, 400]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": false,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "id": "cadastro_cmd",
+                  "leftValue": "={{ $('Processar Mensagem').item.json.mensagem }}",
+                  "rightValue": "cadastro",
+                  "operator": {
+                    "type": "string",
+                    "operation": "contains"
+                  }
+                }
+              ],
+              "combinator": "and"
+            },
+            "options": {}
+          },
+          "id": "verificar-comando-cadastro",
+          "name": "É Comando Cadastro?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [1340, 400]
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "partes_cadastro",
+                  "name": "partes_cadastro",
+                  "value": "={{ $('Processar Mensagem').item.json.mensagem_original.split(' ') }}",
+                  "type": "object"
+                },
+                {
+                  "id": "cep_informado",
+                  "name": "cep_informado",
+                  "value": "={{ $json.partes_cadastro[1] || '' }}",
+                  "type": "string"
+                },
+                {
+                  "id": "cpf_informado",
+                  "name": "cpf_informado",
+                  "value": "={{ $json.partes_cadastro[2] || '' }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "extrair-dados-cadastro",
+          "name": "Extrair Dados Cadastro",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3,
+          "position": [1560, 400]
+        },
+        {
+          "parameters": {
+            "url": "https://rfrzxobijhrcfixtauft.supabase.co/functions/v1/usuarios-whatsapp",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "httpHeaderAuth",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcnp4b2JpamhyY2ZpeHRhdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTkyMTYsImV4cCI6MjA3MjY3NTIxNn0.83p6u1ZIW_1rpanj5cD054faD0TOw-79FLnitQrJi2c"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ {\n  \"telefone\": $('Processar Mensagem').item.json.telefone,\n  \"cep\": $json.cep_informado,\n  \"cpf\": $json.cpf_informado,\n  \"formato_preferido\": \"Texto\"\n} }}",
+            "options": {}
+          },
+          "id": "executar-cadastro",
+          "name": "Executar Cadastro",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [1780, 400]
+        },
+        {
+          "parameters": {
+            "message": "✅ *Cadastro realizado com sucesso!*\n\n🎉 Bem-vindo à Dona Oferta!\n\n🆓 *SEU TRIAL ESTÁ ATIVO!*\n• 60 dias gratuitos\n• Ofertas ilimitadas\n• Sem custo algum\n\n📅 Trial válido até: {{ $now.plus({ days: 60 }).toFormat('dd/MM/yyyy') }}\n\n📋 *Próxima etapa:* Vamos escolher seus supermercados preferidos.\n\nQual região você mora e quais supermercados frequenta?\n\nExemplo: *Moro em São Paulo, frequento Carrefour e Extra*\n\n💡 Após isso, você já pode receber ofertas digitando: *OFERTAS*",
+            "chatId": "={{ $('Processar Mensagem').item.json.telefone }}",
+            "additionalFields": {}
+          },
+          "id": "confirmar-cadastro-sucesso",
+          "name": "Confirmar Cadastro",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [2000, 400]
+        },
+        {
+          "parameters": {
+            "message": "🔄 *Interação processada*\n\n{{ $('Processar Mensagem').item.json.mensagem_original }}\n\n---\n💡 *Comandos disponíveis:*\n\n🛒 *OFERTAS* - Receber ofertas do dia\n💎 *PLANO BASICO* ou *PLANO PREMIUM* - Assinar planos\n📝 *CADASTRO [CEP] [CPF]* - Para novos usuários\n\n❓ Para dúvidas, apenas envie uma mensagem!",
+            "chatId": "={{ $('Processar Mensagem').item.json.telefone }}",
+            "additionalFields": {}
+          },
+          "id": "resposta-generica",
+          "name": "Resposta Genérica",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1,
+          "position": [1560, 500]
         },
         {
           "parameters": {
             "respondWith": "json",
-            "responseBody": "={{ {\n  \"status\": \"processed\",\n  \"action\": \"whatsapp_interaction\"\n} }}"
+            "responseBody": "={{ {\n  \"status\": \"processed\",\n  \"action\": \"whatsapp_interaction\",\n  \"user_exists\": $('Verificar Usuário Existente').item.json.length > 0\n} }}"
           },
           "id": "resposta-webhook",
           "name": "Resposta Webhook",
           "type": "n8n-nodes-base.respondToWebhook",
           "typeVersion": 1,
-          "position": [1560, 400]
+          "position": [2200, 300]
         }
       ],
       "connections": {
@@ -1308,32 +1389,79 @@
           "main": [
             [
               {
-                "node": "Verificar Comando Ofertas",
+                "node": "Verificar Usuário Existente",
                 "type": "main",
                 "index": 0
               }
             ]
           ]
         },
-        "Verificar Comando Ofertas": {
+        "Verificar Usuário Existente": {
           "main": [
             [
               {
-                "node": "Verificar Status Usuário",
+                "node": "Usuário Existe?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Usuário Existe?": {
+          "main": [
+            [
+              {
+                "node": "Tem Supermercados?",
                 "type": "main",
                 "index": 0
               }
             ],
             [
               {
-                "node": "Verificar Comando Plano",
+                "node": "Iniciar Cadastro Novo",
                 "type": "main",
                 "index": 0
               }
             ]
           ]
         },
-        "Verificar Comando Plano": {
+        "Tem Supermercados?": {
+          "main": [
+            [
+              {
+                "node": "É Comando Ofertas?",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Solicitar Supermercados",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "É Comando Ofertas?": {
+          "main": [
+            [
+              {
+                "node": "Buscar Ofertas",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "É Comando Plano?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "É Comando Plano?": {
           "main": [
             [
               {
@@ -1344,36 +1472,25 @@
             ],
             [
               {
-                "node": "Menu Ajuda",
+                "node": "Resposta Genérica",
                 "type": "main",
                 "index": 0
               }
             ]
           ]
         },
-        "Verificar Status Usuário": {
+        "Buscar Ofertas": {
           "main": [
             [
               {
-                "node": "Buscar Ofertas Usuário",
+                "node": "Enviar Ofertas",
                 "type": "main",
                 "index": 0
               }
             ]
           ]
         },
-        "Buscar Ofertas Usuário": {
-          "main": [
-            [
-              {
-                "node": "Enviar Ofertas Comando",
-                "type": "main",
-                "index": 0
-              }
-            ]
-          ]
-        },
-        "Enviar Ofertas Comando": {
+        "Enviar Ofertas": {
           "main": [
             [
               {
@@ -1385,17 +1502,6 @@
           ]
         },
         "Identificar Plano": {
-          "main": [
-            [
-              {
-                "node": "Buscar CPF Usuário",
-                "type": "main",
-                "index": 0
-              }
-            ]
-          ]
-        },
-        "Buscar CPF Usuário": {
           "main": [
             [
               {
@@ -1417,7 +1523,80 @@
             ]
           ]
         },
-        "Menu Ajuda": {
+        "Solicitar Supermercados": {
+          "main": [
+            [
+              {
+                "node": "Resposta Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Iniciar Cadastro Novo": {
+          "main": [
+            [
+              {
+                "node": "É Comando Cadastro?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "É Comando Cadastro?": {
+          "main": [
+            [
+              {
+                "node": "Extrair Dados Cadastro",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Resposta Genérica",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Extrair Dados Cadastro": {
+          "main": [
+            [
+              {
+                "node": "Executar Cadastro",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Executar Cadastro": {
+          "main": [
+            [
+              {
+                "node": "Confirmar Cadastro",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Confirmar Cadastro": {
+          "main": [
+            [
+              {
+                "node": "Resposta Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Resposta Genérica": {
           "main": [
             [
               {
@@ -1503,7 +1682,7 @@
             },
             "sendBody": true,
             "specifyBody": "json",
-            "jsonBody": "={{ {\n  \"supermercado_id\": $json.supermercado_id,\n  \"ofertas_extraidas\": $json.ofertas_extraidas,\n  \"url_pdf\": $json.url_pdf\n} }}",
+            "jsonBody": "={{ {\n  \"supermercado_id\": $json.supermercado_id,\n  \"url_pdf\": $json.url_pdf,\n  \"ofertas_extraidas\": $json.ofertas_extraidas\n} }}",
             "options": {}
           },
           "id": "chamar-processar-ofertas",
@@ -1535,8 +1714,8 @@
             },
             "options": {}
           },
-          "id": "verificar-processamento",
-          "name": "Verificar Processamento",
+          "id": "verificar-sucesso-processamento",
+          "name": "Verificar Sucesso",
           "type": "n8n-nodes-base.if",
           "typeVersion": 2,
           "position": [900, 300]
@@ -1544,9 +1723,9 @@
         {
           "parameters": {
             "respondWith": "json",
-            "responseBody": "={{ {\n  \"status\": \"success\",\n  \"message\": \"Ofertas processadas com sucesso!\",\n  \"ofertas_inseridas\": $json.ofertas_inseridas\n} }}"
+            "responseBody": "={{ {\n  \"status\": \"success\",\n  \"message\": \"Ofertas processadas com sucesso\",\n  \"ofertas_inseridas\": $json.ofertas_inseridas || 0\n} }}"
           },
-          "id": "resposta-sucesso",
+          "id": "resposta-sucesso-ofertas",
           "name": "Resposta Sucesso",
           "type": "n8n-nodes-base.respondToWebhook",
           "typeVersion": 1,
@@ -1555,9 +1734,9 @@
         {
           "parameters": {
             "respondWith": "json",
-            "responseBody": "={{ {\n  \"status\": \"error\",\n  \"message\": $json.error || \"Erro no processamento das ofertas\"\n} }}"
+            "responseBody": "={{ {\n  \"status\": \"error\",\n  \"message\": $json.message || \"Erro no processamento das ofertas\"\n} }}"
           },
-          "id": "resposta-erro",
+          "id": "resposta-erro-ofertas",
           "name": "Resposta Erro",
           "type": "n8n-nodes-base.respondToWebhook",
           "typeVersion": 1,
@@ -1591,14 +1770,14 @@
           "main": [
             [
               {
-                "node": "Verificar Processamento",
+                "node": "Verificar Sucesso",
                 "type": "main",
                 "index": 0
               }
             ]
           ]
         },
-        "Verificar Processamento": {
+        "Verificar Sucesso": {
           "main": [
             [
               {
